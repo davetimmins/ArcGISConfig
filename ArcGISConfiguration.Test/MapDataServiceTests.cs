@@ -1,25 +1,21 @@
-﻿using ArcGISConfiguration.API.ServiceInterface;
-using ArcGISConfiguration.API.ServiceModel;
+﻿using ArcGISConfiguration.API.ServiceModel;
 using ServiceStack.OrmLite;
 using ServiceStack.ServiceClient.Web;
 using ServiceStack.WebHost.Endpoints;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace ArcGISConfiguration.Test
 {
     public sealed class MapDataServiceTests : IDisposable
     {
-        const string BaseUri = "http://localhost:1337/";
-        AppHost _appHost;
+        const string BaseUri = "http://*:2001/";
+        TestAppHost _appHost = new TestAppHost();
 
         public MapDataServiceTests()
         {
-            _appHost = new AppHost();
             _appHost.Init();
             _appHost.Start(BaseUri);
         }
@@ -45,7 +41,7 @@ namespace ArcGISConfiguration.Test
             Assert.False(SeedData.MapData().Count == data.Count);
             Assert.Equal(1, data.Count);
             Assert.Equal(expected.Role, data.First().Role);
-            Assert.ReferenceEquals(data.First(), expected);
+            Assert.Equal(data.First(), expected);
         }
 
         [Fact]
@@ -53,7 +49,7 @@ namespace ArcGISConfiguration.Test
         {
             var client = new JsonServiceClient(BaseUri);
 
-            Exception ex = Assert.Throws<ServiceStack.ServiceClient.Web.WebServiceException>(() => client.Get<List<MapData>>("/mapdata/ /"));
+            Exception ex = Assert.Throws<WebServiceException>(() => client.Get<List<MapData>>("/mapdata/ /"));
         }
 
         [Fact]
@@ -61,7 +57,7 @@ namespace ArcGISConfiguration.Test
         {
             var client = new JsonServiceClient(BaseUri);
 
-            Exception ex = Assert.Throws<ServiceStack.ServiceClient.Web.WebServiceException>(() => client.Get<List<MapData>>("/mapdata/blsdsdsah"));
+            Assert.Throws<WebServiceException>(() => client.Get<List<MapData>>("/mapdata/blsdsdsah"));
         }
 
         public void Dispose()
@@ -70,21 +66,21 @@ namespace ArcGISConfiguration.Test
                 _appHost.Dispose();
             _appHost = null;
         }
+    }
 
-        class AppHost : AppHostHttpListenerBase
+    public class TestAppHost : AppHostHttpListenerBase
+    {
+        public TestAppHost() : base("MapDataService Tests", typeof(TestAppHost).Assembly) { }
+
+        public override void Configure(Funq.Container container)
         {
-            public AppHost() : base("MapDataService Tests", typeof(MapDataService).Assembly) { }
+            container.Register<IDbConnectionFactory>(new OrmLiteConnectionFactory(":memory:", false, ServiceStack.OrmLite.Sqlite.SqliteOrmLiteDialectProvider.Instance));
+            var dbFactory = container.Resolve<IDbConnectionFactory>();
 
-            public override void Configure(Funq.Container container)
+            if (!dbFactory.Run(db => db.TableExists("MapData")))
             {
-                container.Register<IDbConnectionFactory>(new OrmLiteConnectionFactory(":memory:", false,                    ServiceStack.OrmLite.Sqlite.SqliteOrmLiteDialectProvider.Instance));
-                var dbFactory = container.Resolve<IDbConnectionFactory>();
-
-                if (!dbFactory.Run(db => db.TableExists("MapData")))
-                {
-                    dbFactory.Run(db => db.CreateTableIfNotExists<MapData>());
-                    dbFactory.Run(db => db.InsertAll(SeedData.MapData()));
-                }
+                dbFactory.Run(db => db.CreateTableIfNotExists<MapData>());
+                dbFactory.Run(db => db.InsertAll(SeedData.MapData()));
             }
         }
     }

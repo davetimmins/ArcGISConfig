@@ -1,6 +1,5 @@
 ﻿using ArcGISConfiguration.API.ServiceModel;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using ServiceStack.OrmLite;
 using ServiceStack.ServiceHost;
@@ -16,7 +15,7 @@ namespace ArcGISConfiguration.API.ServiceInterface
             if (string.IsNullOrWhiteSpace(request.Role)) throw new ArgumentNullException("Role");
             
             var cacheKey = UrnId.Create<MapData>(request.Role);
-            return base.RequestContext.ToOptimizedResultUsingCache(this.Cache, cacheKey, () =>
+            return RequestContext.ToOptimizedResultUsingCache(Cache, cacheKey, () =>
             {
                 var result = Db.SelectParam<MapData>(q => q.Role == request.Role).FirstOrDefault();
                 if (result == null) 

@@ -1,6 +1,6 @@
-﻿using ServiceStack.DataAnnotations;
+﻿using ArcGIS.ServiceModel.Common;
+using ServiceStack.DataAnnotations;
 using ServiceStack.ServiceHost;
-using ServiceStack.ServiceInterface.ServiceModel;
 using System;
 using System.Collections.Generic;
 
